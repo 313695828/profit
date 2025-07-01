@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <script>
@@ -17,7 +18,7 @@
             primary: '#165DFF',
             secondary: '#36CFC9',
             accent: '#722ED1',
-            weekend: '#FFE5E5', // 周末高亮颜色
+            weekend: '#FFE5E5',
             neutral: {
               100: '#F2F3F5',
               200: '#E5E6EB',
@@ -63,25 +64,40 @@
         color: transparent;
         background-image: linear-gradient(135deg, #165DFF 0%, #722ED1 100%);
       }
+      .animate-fadeIn {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .glass-effect {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+      }
+      .stat-card {
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+      }
+      .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+      }
     }
   </style>
 </head>
-<body class="font-inter bg-neutral-100 text-neutral-700 min-h-screen flex flex-col">
+<body class="font-inter bg-neutral-50 text-neutral-700 min-h-screen flex flex-col">
   <!-- 导航栏 -->
-  <nav class="bg-white shadow-md sticky top-0 z-50 transition-all duration-300">
+  <nav class="glass-effect shadow-sm sticky top-0 z-50 transition-all duration-300">
     <div class="container mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-2">
         <div class="w-10 h-10 rounded-lg gradient-bg flex items-center justify-center">
-          <i class="fa fa-calendar-check-o text-white text-xl"></i>
+          <i class="fa fa-calculator text-white text-xl"></i>
         </div>
         <h1 class="text-xl font-bold text-neutral-700">利润计算器</h1>
       </div>
       
-      <div class="hidden md:flex items-center space-x-6">
-        <a href="#" class="text-primary font-medium hover:text-primary/80 transition-colors">首页</a>
-        <a href="#" class="text-neutral-500 font-medium hover:text-primary transition-colors">历史记录</a>
-        <a href="#" class="text-neutral-500 font-medium hover:text-primary transition-colors">帮助</a>
-      </div>
+     
       
       <div class="md:hidden">
         <button class="text-neutral-700 focus:outline-none">
@@ -93,6 +109,54 @@
 
   <!-- 主要内容 -->
   <main class="flex-grow container mx-auto px-4 py-8">
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="stat-card bg-white rounded-xl p-6">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <p class="text-neutral-500 text-sm">平均日利润率</p>
+            <h3 id="avgDailyProfitRate" class="text-2xl font-bold">0.00%</h3>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <i class="fa fa-line-chart text-primary"></i>
+          </div>
+        </div>
+        <div class="w-full bg-neutral-100 rounded-full h-2">
+          <div id="dailyRateBar" class="bg-primary h-2 rounded-full" style="width: 0%"></div>
+        </div>
+      </div>
+      
+      <div class="stat-card bg-white rounded-xl p-6">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <p class="text-neutral-500 text-sm">年化利润率</p>
+            <h3 id="annualProfitRate" class="text-2xl font-bold">0.00%</h3>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
+            <i class="fa fa-area-chart text-secondary"></i>
+          </div>
+        </div>
+        <div class="w-full bg-neutral-100 rounded-full h-2">
+          <div id="annualRateBar" class="bg-secondary h-2 rounded-full" style="width: 0%"></div>
+        </div>
+      </div>
+      
+      <div class="stat-card bg-white rounded-xl p-6">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <p class="text-neutral-500 text-sm">总利润</p>
+            <h3 id="totalProfitSum" class="text-2xl font-bold">¥0.00</h3>
+          </div>
+          <div class="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+            <i class="fa fa-money text-accent"></i>
+          </div>
+        </div>
+        <div class="w-full bg-neutral-100 rounded-full h-2">
+          <div id="profitSumBar" class="bg-accent h-2 rounded-full" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+    
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- 左侧表单 -->
       <div class="lg:col-span-1">
@@ -105,7 +169,7 @@
             <div>
               <label for="projectName" class="block text-sm font-medium text-neutral-500 mb-1">项目名称</label>
               <input type="text" id="projectName" name="projectName" 
-                class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+                class="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
                 placeholder="例如：31天新疆小红杏">
             </div>
             
@@ -113,14 +177,14 @@
               <div>
                 <label for="days" class="block text-sm font-medium text-neutral-500 mb-1">天数</label>
                 <input type="number" id="days" name="days" min="1" 
-                  class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+                  class="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
                   placeholder="输入天数" oninput="calculateDueDate()">
               </div>
               
               <div>
                 <label for="copies" class="block text-sm font-medium text-neutral-500 mb-1">份数</label>
                 <input type="number" id="copies" name="copies" min="1" 
-                  class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+                  class="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
                   placeholder="输入份数">
               </div>
             </div>
@@ -131,7 +195,7 @@
                 <div class="relative">
                   <span class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">¥</span>
                   <input type="number" id="profitPerCopy" name="profitPerCopy" step="0.01" min="0" 
-                    class="w-full pl-8 pr-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+                    class="w-full pl-8 pr-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
                     placeholder="输入每份利润">
                 </div>
               </div>
@@ -141,8 +205,8 @@
                 <div class="relative">
                   <span class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">¥</span>
                   <input type="number" id="totalProfit" name="totalProfit" step="0.01" min="0" 
-                    class="w-full pl-8 pr-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
-                    placeholder="输入总利润" readonly>
+                    class="w-full pl-8 pr-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+                    placeholder="自动计算" readonly>
                 </div>
               </div>
             </div>
@@ -150,14 +214,14 @@
             <div>
               <label for="bankCard" class="block text-sm font-medium text-neutral-500 mb-1">付款银行卡</label>
               <input type="text" id="bankCard" name="bankCard" 
-                class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+                class="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
                 placeholder="例如：农业银行">
             </div>
             
             <div>
               <label for="dueDate" class="block text-sm font-medium text-neutral-500 mb-1">到期日期</label>
               <input type="date" id="dueDate" name="dueDate" 
-                class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+                class="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
                 readonly>
             </div>
             
@@ -166,67 +230,23 @@
               <div class="relative">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">¥</span>
                 <input type="number" id="cost" name="cost" step="0.01" min="0" 
-                  class="w-full pl-8 pr-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+                  class="w-full pl-8 pr-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
                   placeholder="输入成本">
               </div>
             </div>
             
-            <div class="pt-2">
+            <div class="pt-2 grid grid-cols-2 gap-4">
               <button type="button" id="calculateBtn" 
-                class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-all flex items-center justify-center">
+                class="bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center">
                 <i class="fa fa-calculator mr-2"></i>计算利润率
               </button>
-            </div>
-            
-            <div class="pt-2">
+              
               <button type="button" id="addBtn" 
-                class="w-full bg-success hover:bg-success/90 text-white font-medium py-2 px-4 rounded-lg transition-all flex items-center justify-center">
+                class="bg-success hover:bg-success/90 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center">
                 <i class="fa fa-plus mr-2"></i>添加到表格
               </button>
             </div>
           </form>
-        </div>
-        
-        <!-- 利润率卡片 -->
-        <div class="mt-6 bg-white rounded-xl shadow-soft p-6 card-hover">
-          <h2 class="text-xl font-bold mb-4 flex items-center">
-            <i class="fa fa-line-chart text-primary mr-2"></i>利润率分析
-          </h2>
-          
-          <div class="space-y-4">
-            <div class="bg-neutral-50 rounded-lg p-4">
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-neutral-500">平均日利润率</span>
-                <span class="font-bold" id="avgDailyProfitRate">0.00%</span>
-              </div>
-              <div class="w-full bg-neutral-200 rounded-full h-2">
-                <div id="dailyRateBar" class="bg-primary h-2 rounded-full" style="width: 0%"></div>
-              </div>
-            </div>
-            
-            <div class="bg-neutral-50 rounded-lg p-4">
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-neutral-500">年化利润率</span>
-                <span class="font-bold" id="annualProfitRate">0.00%</span>
-              </div>
-              <div class="w-full bg-neutral-200 rounded-full h-2">
-                <div id="annualRateBar" class="bg-secondary h-2 rounded-full" style="width: 0%"></div>
-              </div>
-            </div>
-            
-            <div class="bg-neutral-50 rounded-lg p-4">
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-neutral-500">总利润</span>
-                <div class="flex items-center">
-                  <span class="font-bold mr-1">¥</span>
-                  <span class="font-bold" id="totalProfitSum">0.00</span>
-                </div>
-              </div>
-              <div class="w-full bg-neutral-200 rounded-full h-2">
-                <div id="profitSumBar" class="bg-accent h-2 rounded-full" style="width: 0%"></div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
       
@@ -234,15 +254,19 @@
       <div class="lg:col-span-2 space-y-6">
         <!-- 表格卡片 -->
         <div class="bg-white rounded-xl shadow-soft p-6 card-hover">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold flex items-center">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <h2 class="text-xl font-bold mb-4 md:mb-0 flex items-center">
               <i class="fa fa-table text-primary mr-2"></i>项目列表
             </h2>
-            <div class="flex space-x-2">
-              <button id="exportBtn" class="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium py-1.5 px-3 rounded-lg transition-all flex items-center">
-                <i class="fa fa-download mr-1"></i>导出
+            <div class="flex flex-wrap gap-2 w-full md:w-auto">
+              <button id="exportBtn" class="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium py-2 px-4 rounded-lg transition-all flex items-center">
+                <i class="fa fa-download mr-1"></i>导出Excel
               </button>
-              <button id="clearBtn" class="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium py-1.5 px-3 rounded-lg transition-all flex items-center">
+              <button id="importBtn" class="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium py-2 px-4 rounded-lg transition-all flex items-center">
+                <i class="fa fa-upload mr-1"></i>导入Excel
+              </button>
+              <input type="file" id="importCsv" accept=".xlsx" class="hidden">
+              <button id="clearBtn" class="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium py-2 px-4 rounded-lg transition-all flex items-center">
                 <i class="fa fa-trash mr-1"></i>清空
               </button>
             </div>
@@ -252,22 +276,19 @@
             <table class="min-w-full divide-y divide-neutral-200">
               <thead class="bg-neutral-50">
                 <tr>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">项目名称</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">天数</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">份数</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">每份利润</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">总利润</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">付款银行卡</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">到期日期</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">成本</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">年化利润率</th>
-                  <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">操作</th>
+                  <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">项目名称</th>
+                  <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">天数</th>
+                  <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">总利润</th>
+                  <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">成本</th>
+                  <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">年化利润率</th>
+                  <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">到期日期</th>
+                  <th scope="col" class="px-6 py-4 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">操作</th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-neutral-200" id="projectsTable">
                 <!-- 表格内容将通过JavaScript动态添加 -->
                 <tr class="text-center">
-                  <td colspan="10" class="px-6 py-12 text-neutral-400">
+                  <td colspan="7" class="px-6 py-12 text-neutral-400">
                     <div class="flex flex-col items-center">
                       <i class="fa fa-folder-open-o text-4xl mb-3"></i>
                       <p>暂无数据</p>
@@ -326,11 +347,14 @@
     </div>
   </footer>
 
-  <!-- 添加项目模态框 -->
+  <!-- 项目详情模态框 -->
   <div id="projectModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
     <div class="bg-white rounded-xl shadow-lg max-w-md w-full mx-4 transform transition-all">
-      <div class="p-6 border-b border-neutral-200">
+      <div class="p-6 border-b border-neutral-200 flex justify-between items-center">
         <h3 class="text-lg font-bold">项目详情</h3>
+        <button onclick="closeModal('projectModal')" class="text-neutral-400 hover:text-neutral-600">
+          <i class="fa fa-times"></i>
+        </button>
       </div>
       <div class="p-6 space-y-4">
         <div>
@@ -375,9 +399,95 @@
         </div>
       </div>
       <div class="p-6 border-t border-neutral-200 flex justify-end">
-        <button id="closeModalBtn" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-all">
+        <button onclick="closeModal('projectModal')" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-all">
           关闭
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑项目模态框 -->
+  <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl shadow-lg max-w-md w-full mx-4 transform transition-all">
+      <div class="p-6 border-b border-neutral-200 flex justify-between items-center">
+        <h3 class="text-lg font-bold">编辑项目</h3>
+        <button onclick="closeModal('editModal')" class="text-neutral-400 hover:text-neutral-600">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <form id="editForm" class="p-6 space-y-4">
+        <input type="hidden" id="editIndex" value="">
+        
+        <div>
+          <label for="editProjectName" class="block text-sm font-medium text-neutral-500 mb-1">项目名称</label>
+          <input type="text" id="editProjectName" name="editProjectName" 
+            class="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all">
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="editDays" class="block text-sm font-medium text-neutral-500 mb-1">天数</label>
+            <input type="number" id="editDays" name="editDays" min="1" 
+              class="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all">
+          </div>
+          
+          <div>
+            <label for="editCopies" class="block text-sm font-medium text-neutral-500 mb-1">份数</label>
+            <input type="number" id="editCopies" name="editCopies" min="1" 
+              class="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all">
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="editProfitPerCopy" class="block text-sm font-medium text-neutral-500 mb-1">每份利润</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">¥</span>
+              <input type="number" id="editProfitPerCopy" name="editProfitPerCopy" step="0.01" min="0" 
+                class="w-full pl-8 pr-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all">
+            </div>
+          </div>
+          
+          <div>
+            <label for="editTotalProfit" class="block text-sm font-medium text-neutral-500 mb-1">总利润</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">¥</span>
+              <input type="number" id="editTotalProfit" name="editTotalProfit" step="0.01" min="0" 
+                class="w-full pl-8 pr-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
+                readonly>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <label for="editBankCard" class="block text-sm font-medium text-neutral-500 mb-1">付款银行卡</label>
+          <input type="text" id="editBankCard" name="editBankCard" 
+            class="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all">
+        </div>
+        
+        <div>
+          <label for="editDueDate" class="block text-sm font-medium text-neutral-500 mb-1">到期日期</label>
+          <input type="date" id="editDueDate" name="editDueDate" 
+            class="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all">
+        </div>
+        
+        <div>
+          <label for="editCost" class="block text-sm font-medium text-neutral-500 mb-1">成本</label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">¥</span>
+            <input type="number" id="editCost" name="editCost" step="0.01" min="0" 
+              class="w-full pl-8 pr-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all">
+            </div>
+          </div>
+        </form>
+        <div class="p-6 border-t border-neutral-200 flex justify-end space-x-3">
+          <button onclick="closeModal('editModal')" class="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium py-2 px-4 rounded-lg transition-all">
+            取消
+          </button>
+          <button onclick="saveEdit()" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-all">
+            <i class="fa fa-save mr-2"></i>保存修改
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -386,7 +496,7 @@
     // 存储项目数据
     let projects = [];
     
-    // DOM元素
+    // DOM 元素
     const profitForm = document.getElementById('profitForm');
     const projectNameInput = document.getElementById('projectName');
     const daysInput = document.getElementById('days');
@@ -408,11 +518,41 @@
     const annualRateBar = document.getElementById('annualRateBar');
     const profitSumBar = document.getElementById('profitSumBar');
     const projectModal = document.getElementById('projectModal');
-    const closeModalBtn = document.getElementById('closeModalBtn');
+    const editModal = document.getElementById('editModal');
+    const importBtn = document.getElementById('importBtn');
+    const importCsvInput = document.getElementById('importCsv');
+    
+    // 利润率计算结果
+    let currentDailyRate = 0;
+    let currentAnnualRate = 0;
     
     // 初始化图表
     let profitDistributionChart;
     let profitRateComparisonChart;
+    
+    // 页面加载完成后执行
+    document.addEventListener('DOMContentLoaded', function() {
+      // 设置默认日期
+      calculateDueDate();
+      
+      // 事件监听
+      copiesInput.addEventListener('input', calculateTotalProfit);
+      profitPerCopyInput.addEventListener('input', calculateTotalProfit);
+      document.getElementById('editCopies').addEventListener('input', calculateEditTotalProfit);
+      document.getElementById('editProfitPerCopy').addEventListener('input', calculateEditTotalProfit);
+      calculateBtn.addEventListener('click', calculateProfitRate);
+      addBtn.addEventListener('click', addProject);
+      exportBtn.addEventListener('click', exportToExcel);
+      clearBtn.addEventListener('click', clearProjects);
+      importBtn.addEventListener('click', () => importCsvInput.click());
+      importCsvInput.addEventListener('change', handleFileUpload);
+      
+      // 尝试从本地存储加载数据
+      loadFromLocalStorage();
+      
+      // 初始化图表
+      updateCharts();
+    });
     
     // 计算总利润
     function calculateTotalProfit() {
@@ -421,6 +561,16 @@
       const totalProfit = copies * profitPerCopy;
       
       totalProfitInput.value = totalProfit.toFixed(2);
+      return totalProfit;
+    }
+    
+    // 计算编辑表单中的总利润
+    function calculateEditTotalProfit() {
+      const copies = parseFloat(document.getElementById('editCopies').value) || 0;
+      const profitPerCopy = parseFloat(document.getElementById('editProfitPerCopy').value) || 0;
+      const totalProfit = copies * profitPerCopy;
+      
+      document.getElementById('editTotalProfit').value = totalProfit.toFixed(2);
       return totalProfit;
     }
     
@@ -436,7 +586,7 @@
       const dueDate = new Date(today);
       dueDate.setDate(today.getDate() + days);
       
-      // 格式化为YYYY-MM-DD
+      // 格式化为 YYYY-MM-DD
       const year = dueDate.getFullYear();
       const month = String(dueDate.getMonth() + 1).padStart(2, '0');
       const day = String(dueDate.getDate()).padStart(2, '0');
@@ -450,6 +600,14 @@
       
       // 年化利润率 = (利润/天数/成本)*365*100%
       return (profit / days / cost) * 365 * 100;
+    }
+    
+    // 计算日利润率
+    function calculateDailyProfitRate(days, profit, cost) {
+      if (days <= 0 || cost <= 0) return 0;
+      
+      // 日利润率 = (利润/天数/成本)*100%
+      return (profit / days / cost) * 100;
     }
     
     // 格式化货币
@@ -476,12 +634,107 @@
       return weekdayNum === 0 || weekdayNum === 6;
     }
     
+    // 计算利润率
+    function calculateProfitRate() {
+      const days = parseInt(daysInput.value) || 0;
+      const totalProfit = parseFloat(totalProfitInput.value) || 0;
+      const cost = parseFloat(costInput.value) || 0;
+      
+      if (days <= 0 || totalProfit <= 0 || cost <= 0) {
+        showNotification('请输入有效的天数、总利润和成本！', 'error');
+        return;
+      }
+      
+      // 计算日利润率和年化利润率
+      currentDailyRate = calculateDailyProfitRate(days, totalProfit, cost);
+      currentAnnualRate = currentDailyRate * 365;
+      
+      // 更新显示
+      avgDailyProfitRate.textContent = formatPercentage(currentDailyRate);
+      annualProfitRate.textContent = formatPercentage(currentAnnualRate);
+      
+      // 更新进度条
+      dailyRateBar.style.width = Math.min(currentDailyRate * 5, 100) + '%';
+      annualRateBar.style.width = Math.min(currentAnnualRate / 5, 100) + '%';
+      
+      // 显示成功消息
+      showNotification('利润率计算成功！', 'success');
+    }
+    
+    // 添加项目到表格
+    function addProject() {
+      const projectName = projectNameInput.value.trim();
+      const days = parseInt(daysInput.value) || 0;
+      const copies = parseInt(copiesInput.value) || 0;
+      const profitPerCopy = parseFloat(profitPerCopyInput.value) || 0;
+      const totalProfit = parseFloat(totalProfitInput.value) || 0;
+      const bankCard = bankCardInput.value.trim();
+      const dueDate = dueDateInput.value;
+      const cost = parseFloat(costInput.value) || 0;
+      
+      if (!projectName || days <= 0 || copies <= 0 || profitPerCopy <= 0 || totalProfit <= 0 || !dueDate || cost <= 0) {
+        showNotification('请填写完整的项目信息！', 'error');
+        return;
+      }
+      
+      // 使用计算好的利润率值
+      const annualRate = currentAnnualRate;
+      const dailyRate = currentDailyRate;
+      
+      // 创建项目对象
+      const project = {
+        id: Date.now(), // 使用时间戳作为唯一ID
+        projectName,
+        days,
+        copies,
+        profitPerCopy,
+        totalProfit,
+        bankCard,
+        dueDate,
+        cost,
+        annualRate,
+        dailyRate
+      };
+      
+      // 添加到项目数组
+      projects.push(project);
+      
+      // 保存到本地存储
+      saveToLocalStorage();
+      
+      // 更新表格
+      updateTable();
+      
+      // 更新图表
+      updateCharts();
+      
+      // 更新统计数据
+      updateStats();
+      
+      // 重置表单
+      profitForm.reset();
+      calculateDueDate();
+      
+      // 重置利润率计算
+      avgDailyProfitRate.textContent = '0.00%';
+      annualProfitRate.textContent = '0.00%';
+      dailyRateBar.style.width = '0%';
+      annualRateBar.style.width = '0%';
+      currentDailyRate = 0;
+      currentAnnualRate = 0;
+      
+      // 显示成功消息
+      showNotification('项目已成功添加！', 'success');
+    }
+    
     // 更新项目表格
-    function updateProjectsTable() {
+    function updateTable() {
+      projectsTable.innerHTML = '';
+      
       if (projects.length === 0) {
         projectsTable.innerHTML = `
           <tr class="text-center">
-            <td colspan="10" class="px-6 py-12 text-neutral-400">
+            <td colspan="7" class="px-6 py-12 text-neutral-400">
               <div class="flex flex-col items-center">
                 <i class="fa fa-folder-open-o text-4xl mb-3"></i>
                 <p>暂无数据</p>
@@ -490,324 +743,150 @@
             </td>
           </tr>
         `;
-        updateCharts();
-        updateSummary();
         return;
       }
       
-      let html = '';
-      
       projects.forEach((project, index) => {
-        const annualRate = calculateAnnualProfitRate(project.days, project.totalProfit, project.cost);
-        const annualRateFormatted = formatPercentage(annualRate);
-        
-        // 解析到期日期为星期几
-        const date = new Date(project.dueDate);
-        const weekdayNum = date.getDay();
+        // 解析日期并获取星期几
+        const dueDateObj = new Date(project.dueDate);
+        const weekdayNum = dueDateObj.getDay();
         const weekdayName = getWeekdayName(weekdayNum);
         const isWeekendDay = isWeekend(weekdayNum);
         
-        // 确定利润率颜色
-        let rateColorClass = 'text-success';
-        if (annualRate < 5) rateColorClass = 'text-neutral-500';
-        if (annualRate >= 15) rateColorClass = 'text-accent';
+        // 格式化日期为 YYYY-MM-DD
+        const formattedDate = `${dueDateObj.getFullYear()}-${String(dueDateObj.getMonth() + 1).padStart(2, '0')}-${String(dueDateObj.getDate()).padStart(2, '0')}`;
         
-        // 确定到期日期样式
-        let dateCellStyle = '';
-        if (isWeekendDay) {
-          dateCellStyle = 'bg-weekend text-danger font-medium';
+        // 为年化利润率添加颜色
+        let annualRateColor = 'text-neutral-700';
+        if (project.annualRate >= 10) {
+          annualRateColor = 'text-success';
+        } else if (project.annualRate >= 5) {
+          annualRateColor = 'text-primary';
+        } else if (project.annualRate > 0) {
+          annualRateColor = 'text-warning';
+        } else {
+          annualRateColor = 'text-danger';
         }
         
-        html += `
-          <tr class="hover:bg-neutral-50 transition-colors">
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="flex items-center">
-                <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                  <i class="fa fa-cube text-primary"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-neutral-700">${project.name}</div>
-                </div>
-              </div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">${project.days}</td>
-            <td class="px-6 py-4 whitespace-nowrap">${project.copies}</td>
-            <td class="px-6 py-4 whitespace-nowrap">¥${formatCurrency(project.profitPerCopy)}</td>
-            <td class="px-6 py-4 whitespace-nowrap font-medium">¥${formatCurrency(project.totalProfit)}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="flex items-center">
-                <i class="fa fa-credit-card text-neutral-400 mr-2"></i>
-                ${project.bankCard}
-              </div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap ${dateCellStyle}">
-              ${project.dueDate} (${weekdayName})
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">¥${formatCurrency(project.cost)}</td>
-            <td class="px-6 py-4 whitespace-nowrap ${rateColorClass}">${annualRateFormatted}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-              <button onclick="viewProject(${index})" class="text-primary hover:text-primary/80 mr-3">
-                <i class="fa fa-eye"></i>
-              </button>
-              <button onclick="editProject(${index})" class="text-neutral-500 hover:text-neutral-700 mr-3">
-                <i class="fa fa-pencil"></i>
-              </button>
-              <button onclick="deleteProject(${index})" class="text-danger hover:text-danger/80">
-                <i class="fa fa-trash"></i>
-              </button>
-            </td>
-          </tr>
+        // 创建表格行
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-neutral-50 transition-colors';
+        row.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="font-medium text-neutral-900">${project.projectName}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-neutral-700">${project.days}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="font-medium text-neutral-900">¥${project.totalProfit.toFixed(2)}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-neutral-700">¥${project.cost.toFixed(2)}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="${annualRateColor} font-medium">${project.annualRate.toFixed(2)}%</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-neutral-700 ${isWeekendDay ? 'bg-weekend rounded-md px-2 py-1' : ''}">
+              ${formattedDate} (${weekdayName})
+            </div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <button onclick="viewProject(${index})" class="text-primary hover:text-primary/80 mr-3">
+              <i class="fa fa-eye"></i>
+            </button>
+            <button onclick="editProject(${index})" class="text-neutral-500 hover:text-neutral-700 mr-3">
+              <i class="fa fa-pencil"></i>
+            </button>
+            <button onclick="deleteProject(${index})" class="text-danger hover:text-danger/80">
+              <i class="fa fa-trash"></i>
+            </button>
+          </td>
+        </tr>
         `;
+        
+        projectsTable.appendChild(row);
       });
-      
-      projectsTable.innerHTML = html;
-      updateCharts();
-      updateSummary();
     }
     
-    // 更新统计摘要
-    function updateSummary() {
-      if (projects.length === 0) {
-        avgDailyProfitRate.textContent = '0.00%';
-        annualProfitRate.textContent = '0.00%';
-        totalProfitSum.textContent = '0.00';
-        dailyRateBar.style.width = '0%';
-        annualRateBar.style.width = '0%';
-        profitSumBar.style.width = '0%';
-        return;
-      }
+    // 查看项目详情
+    function viewProject(index) {
+      const project = projects[index];
       
-      let totalDays = 0;
-      let totalProfit = 0;
-      let totalCost = 0;
+      document.getElementById('modalProjectName').textContent = project.projectName;
+      document.getElementById('modalDays').textContent = project.days;
+      document.getElementById('modalCopies').textContent = project.copies;
+      document.getElementById('modalProfitPerCopy').textContent = '¥' + project.profitPerCopy.toFixed(2);
+      document.getElementById('modalTotalProfit').textContent = '¥' + project.totalProfit.toFixed(2);
+      document.getElementById('modalBankCard').textContent = project.bankCard;
       
-      projects.forEach(project => {
-        totalDays += project.days;
-        totalProfit += project.totalProfit;
-        totalCost += project.cost;
-      });
+      // 格式化日期
+      const dueDateObj = new Date(project.dueDate);
+      const formattedDate = `${dueDateObj.getFullYear()}-${String(dueDateObj.getMonth() + 1).padStart(2, '0')}-${String(dueDateObj.getDate()).padStart(2, '0')}`;
+      const weekdayName = getWeekdayName(dueDateObj.getDay());
+      document.getElementById('modalDueDate').textContent = `${formattedDate} (${weekdayName})`;
       
-      // 计算平均日利润率
-      const avgDailyProfit = totalProfit / totalDays;
-      const avgDailyProfitRateValue = (avgDailyProfit / totalCost) * 100;
+      document.getElementById('modalCost').textContent = '¥' + project.cost.toFixed(2);
+      document.getElementById('modalAnnualRate').textContent = project.annualRate.toFixed(2) + '%';
       
-      // 计算总年化利润率
-      const totalAnnualProfitRate = calculateAnnualProfitRate(totalDays, totalProfit, totalCost);
-      
-      // 更新DOM
-      avgDailyProfitRate.textContent = formatPercentage(avgDailyProfitRateValue);
-      annualProfitRate.textContent = formatPercentage(totalAnnualProfitRate);
-      totalProfitSum.textContent = formatCurrency(totalProfit);
-      
-      // 更新进度条
-      dailyRateBar.style.width = `${Math.min(avgDailyProfitRateValue * 5, 100)}%`;
-      annualRateBar.style.width = `${Math.min(totalAnnualProfitRate * 2, 100)}%`;
-      profitSumBar.style.width = `${Math.min(totalProfit / 1000 * 20, 100)}%`;
-    }
-    
-    // 更新图表
-    function updateCharts() {
-      if (projects.length === 0) {
-        if (profitDistributionChart) profitDistributionChart.destroy();
-        if (profitRateComparisonChart) profitRateComparisonChart.destroy();
-        return;
-      }
-      
-      // 准备利润分布图表数据
-      const profitLabels = projects.map(project => project.name);
-      const profitData = projects.map(project => project.totalProfit);
-      const profitColors = projects.map((_, index) => {
-        const hue = 210 - (index * 30) % 360;
-        return `hsla(${hue}, 100%, 60%, 0.7)`;
-      });
-      
-      // 创建或更新利润分布图表
-      if (!profitDistributionChart) {
-        const ctx1 = document.getElementById('profitDistributionChart').getContext('2d');
-        profitDistributionChart = new Chart(ctx1, {
-          type: 'doughnut',
-          data: {
-            labels: profitLabels,
-            datasets: [{
-              data: profitData,
-              backgroundColor: profitColors,
-              borderWidth: 0,
-              hoverOffset: 4
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: {
-                  usePointStyle: true,
-                  padding: 20,
-                  font: {
-                    family: 'Inter',
-                    size: 11
-                  }
-                }
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    const label = context.label || '';
-                    const value = context.raw || 0;
-                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                    const percentage = Math.round((value / total) * 100);
-                    return `${label}: ¥${formatCurrency(value)} (${percentage}%)`;
-                  }
-                }
-              }
-            },
-            cutout: '70%'
-          }
-        });
-      } else {
-        profitDistributionChart.data.labels = profitLabels;
-        profitDistributionChart.data.datasets[0].data = profitData;
-        profitDistributionChart.data.datasets[0].backgroundColor = profitColors;
-        profitDistributionChart.update();
-      }
-      
-      // 准备利润率对比图表数据
-      const rateLabels = projects.map(project => project.name);
-      const rateData = projects.map(project => 
-        calculateAnnualProfitRate(project.days, project.totalProfit, project.cost)
-      );
-      const rateColors = rateData.map(rate => {
-        if (rate < 5) return 'hsla(210, 14%, 53%, 0.7)';
-        if (rate >= 15) return 'hsla(271, 76%, 53%, 0.7)';
-        return 'hsla(177, 70%, 49%, 0.7)';
-      });
-      
-      // 创建或更新利润率对比图表
-      if (!profitRateComparisonChart) {
-        const ctx2 = document.getElementById('profitRateComparisonChart').getContext('2d');
-        profitRateComparisonChart = new Chart(ctx2, {
-          type: 'bar',
-          data: {
-            labels: rateLabels,
-            datasets: [{
-              label: '年化利润率 (%)',
-              data: rateData,
-              backgroundColor: rateColors,
-              borderRadius: 6,
-              barThickness: 12
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return `年化利润率: ${formatPercentage(context.raw)}`;
-                  }
-                }
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                grid: {
-                  display: true,
-                  color: 'rgba(0, 0, 0, 0.05)'
-                },
-                ticks: {
-                  font: {
-                    family: 'Inter'
-                  }
-                }
-              },
-              x: {
-                grid: {
-                  display: false
-                },
-                ticks: {
-                  font: {
-                    family: 'Inter'
-                  }
-                }
-              }
-            }
-          }
-        });
-      } else {
-        profitRateComparisonChart.data.labels = rateLabels;
-        profitRateComparisonChart.data.datasets[0].data = rateData;
-        profitRateComparisonChart.data.datasets[0].backgroundColor = rateColors;
-        profitRateComparisonChart.update();
-      }
-    }
-    
-    // 添加项目
-    function addProject() {
-      const name = projectNameInput.value.trim();
-      const days = parseInt(daysInput.value) || 0;
-      const copies = parseInt(copiesInput.value) || 0;
-      const profitPerCopy = parseFloat(profitPerCopyInput.value) || 0;
-      const totalProfit = parseFloat(totalProfitInput.value) || 0;
-      const bankCard = bankCardInput.value.trim();
-      const dueDate = dueDateInput.value || '未设置';
-      const cost = parseFloat(costInput.value) || 0;
-      
-      if (!name || days <= 0 || copies <= 0 || profitPerCopy <= 0 || cost <= 0) {
-        alert('请填写完整且有效的项目信息！');
-        return;
-      }
-      
-      // 添加项目到数组
-      projects.push({
-        name,
-        days,
-        copies,
-        profitPerCopy,
-        totalProfit,
-        bankCard,
-        dueDate,
-        cost
-      });
-      
-      // 保存到本地存储
-      localStorage.setItem('profitProjects', JSON.stringify(projects));
-      
-      // 更新表格
-      updateProjectsTable();
-      
-      // 清空表单
-      profitForm.reset();
-      
-      // 显示成功提示
-      showToast('项目添加成功！');
+      // 显示模态框
+      projectModal.classList.remove('hidden');
     }
     
     // 编辑项目
     function editProject(index) {
       const project = projects[index];
-      if (!project) return;
       
-      // 填充表单
-      projectNameInput.value = project.name;
-      daysInput.value = project.days;
-      copiesInput.value = project.copies;
-      profitPerCopyInput.value = project.profitPerCopy;
-      totalProfitInput.value = project.totalProfit;
-      bankCardInput.value = project.bankCard;
-      dueDateInput.value = project.dueDate;
-      costInput.value = project.cost;
+      document.getElementById('editIndex').value = index;
+      document.getElementById('editProjectName').value = project.projectName;
+      document.getElementById('editDays').value = project.days;
+      document.getElementById('editCopies').value = project.copies;
+      document.getElementById('editProfitPerCopy').value = project.profitPerCopy;
+      document.getElementById('editTotalProfit').value = project.totalProfit;
+      document.getElementById('editBankCard').value = project.bankCard;
+      document.getElementById('editDueDate').value = project.dueDate;
+      document.getElementById('editCost').value = project.cost;
       
-      // 删除原项目
-      projects.splice(index, 1);
+      // 显示模态框
+      editModal.classList.remove('hidden');
+    }
+    
+    // 保存编辑
+    function saveEdit() {
+      const index = parseInt(document.getElementById('editIndex').value);
+      const project = projects[index];
+      
+      project.projectName = document.getElementById('editProjectName').value.trim();
+      project.days = parseInt(document.getElementById('editDays').value) || 0;
+      project.copies = parseInt(document.getElementById('editCopies').value) || 0;
+      project.profitPerCopy = parseFloat(document.getElementById('editProfitPerCopy').value) || 0;
+      project.totalProfit = parseFloat(document.getElementById('editTotalProfit').value) || 0;
+      project.bankCard = document.getElementById('editBankCard').value.trim();
+      project.dueDate = document.getElementById('editDueDate').value;
+      project.cost = parseFloat(document.getElementById('editCost').value) || 0;
+      
+      // 重新计算年化利润率和日利润率
+      project.annualRate = calculateAnnualProfitRate(project.days, project.totalProfit, project.cost);
+      project.dailyRate = calculateDailyProfitRate(project.days, project.totalProfit, project.cost);
+      
+      // 保存到本地存储
+      saveToLocalStorage();
       
       // 更新表格
-      updateProjectsTable();
+      updateTable();
+      
+      // 更新图表
+      updateCharts();
+      
+      // 更新统计数据
+      updateStats();
+      
+      // 关闭模态框
+      closeModal('editModal');
+      
+      // 显示成功消息
+      showNotification('项目已成功更新！', 'success');
     }
     
     // 删除项目
@@ -815,191 +894,432 @@
       if (confirm('确定要删除这个项目吗？')) {
         projects.splice(index, 1);
         
-        // 更新本地存储
-        localStorage.setItem('profitProjects', JSON.stringify(projects));
+        // 保存到本地存储
+        saveToLocalStorage();
         
         // 更新表格
-        updateProjectsTable();
+        updateTable();
         
-        // 显示成功提示
-        showToast('项目已删除！');
+        // 更新图表
+        updateCharts();
+        
+        // 更新统计数据
+        updateStats();
+        
+        // 显示成功消息
+        showNotification('项目已成功删除！', 'success');
       }
     }
     
-    // 查看项目详情
-    function viewProject(index) {
-      const project = projects[index];
-      if (!project) return;
-      
-      const annualRate = calculateAnnualProfitRate(project.days, project.totalProfit, project.cost);
-      
-      // 解析到期日期为星期几
-      const date = new Date(project.dueDate);
-      const weekdayNum = date.getDay();
-      const weekdayName = getWeekdayName(weekdayNum);
-      
-      // 填充模态框
-      document.getElementById('modalProjectName').textContent = project.name;
-      document.getElementById('modalDays').textContent = project.days;
-      document.getElementById('modalCopies').textContent = project.copies;
-      document.getElementById('modalProfitPerCopy').textContent = `¥${formatCurrency(project.profitPerCopy)}`;
-      document.getElementById('modalTotalProfit').textContent = `¥${formatCurrency(project.totalProfit)}`;
-      document.getElementById('modalBankCard').textContent = project.bankCard;
-      document.getElementById('modalDueDate').textContent = `${project.dueDate} (${weekdayName})`;
-      document.getElementById('modalCost').textContent = `¥${formatCurrency(project.cost)}`;
-      document.getElementById('modalAnnualRate').textContent = formatPercentage(annualRate);
-      
-      // 显示模态框
-      projectModal.classList.remove('hidden');
-    }
-    
-    // 导出数据
-    function exportData() {
+    // 清空所有项目
+    function clearProjects() {
       if (projects.length === 0) {
-        alert('没有数据可导出！');
+        showNotification('没有项目可清空！', 'info');
         return;
       }
       
-      // 创建CSV内容
-      let csvContent = "项目名称,天数,份数,每份利润,总利润,付款银行卡,到期日期,成本,年化利润率\n";
-      
-      projects.forEach(project => {
-        const annualRate = calculateAnnualProfitRate(project.days, project.totalProfit, project.cost);
-        csvContent += `${project.name},${project.days},${project.copies},${project.profitPerCopy},${project.totalProfit},${project.bankCard},${project.dueDate},${project.cost},${annualRate.toFixed(2)}%\n`;
-      });
-      
-      // 创建下载链接
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `利润数据_${new Date().toISOString().slice(0,10)}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // 显示成功提示
-      showToast('数据导出成功！');
-    }
-    
-    // 清空所有数据
-    function clearAllData() {
-      if (confirm('确定要清空所有项目数据吗？此操作不可恢复！')) {
+      if (confirm('确定要清空所有项目吗？此操作不可撤销！')) {
         projects = [];
-        localStorage.removeItem('profitProjects');
-        updateProjectsTable();
         
-        // 显示成功提示
-        showToast('所有数据已清空！');
+        // 保存到本地存储
+        saveToLocalStorage();
+        
+        // 更新表格
+        updateTable();
+        
+        // 更新图表
+        updateCharts();
+        
+        // 更新统计数据
+        updateStats();
+        
+        // 显示成功消息
+        showNotification('所有项目已成功清空！', 'success');
       }
     }
     
-    // 显示提示框
-    function showToast(message) {
-      // 创建提示元素
-      const toast = document.createElement('div');
-      toast.className = 'fixed bottom-6 right-6 bg-neutral-800 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-y-4 z-50 flex items-center';
-      toast.innerHTML = `
-        <i class="fa fa-check-circle mr-2"></i>
+    // 导出为Excel
+    function exportToExcel() {
+      if (projects.length === 0) {
+        showNotification('没有项目可导出！', 'info');
+        return;
+      }
+      
+      // 创建工作簿和工作表
+      const wb = XLSX.utils.book_new();
+      
+      // 准备数据
+      const data = [
+        ['项目名称', '天数', '份数', '每份利润', '总利润', '付款银行卡', '到期日期', '成本', '日利润率', '年化利润率']
+      ];
+      
+      projects.forEach(project => {
+        data.push([
+          project.projectName,
+          project.days,
+          project.copies,
+          project.profitPerCopy,
+          project.totalProfit,
+          project.bankCard,
+          project.dueDate,
+          project.cost,
+          project.dailyRate,
+          project.annualRate
+        ]);
+      });
+      
+      // 创建工作表
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      // 添加工作表到工作簿
+      XLSX.utils.book_append_sheet(wb, ws, '项目数据');
+      
+      // 生成Excel文件并下载
+      XLSX.writeFile(wb, `利润计算_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      
+      // 显示成功消息
+      showNotification('项目数据已成功导出为Excel文件！', 'success');
+    }
+    
+    // 处理文件上传
+   // 处理文件上传
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      
+      // 获取第一个工作表
+      const worksheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[worksheetName];
+      
+      // 将工作表转换为JSON
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      // 检查数据格式是否正确
+      if (jsonData.length <= 1) {
+        showNotification('Excel文件中没有数据！', 'error');
+        return;
+      }
+      
+      // 检查标题行
+      const headers = jsonData[0];
+      if (headers.length < 10 || headers[0] !== '项目名称' || headers[9] !== '年化利润率') {
+        showNotification('Excel文件格式不正确！', 'error');
+        return;
+      }
+      
+      // 获取当前最大ID，确保新导入的项目ID不冲突
+      const currentMaxId = projects.length > 0 
+        ? Math.max(...projects.map(p => p.id)) 
+        : 0;
+      
+      // 解析Excel数据并追加到现有项目
+      let newProjectsCount = 0;
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        if (row.length < 10) continue;
+        
+        // 生成唯一ID（从当前最大ID+1开始）
+        const uniqueId = currentMaxId + i;
+        
+        const project = {
+          id: uniqueId,
+          projectName: row[0] || '',
+          days: parseInt(row[1]) || 0,
+          copies: parseInt(row[2]) || 0,
+          profitPerCopy: parseFloat(row[3]) || 0,
+          totalProfit: parseFloat(row[4]) || 0,
+          bankCard: row[5] || '',
+          dueDate: row[6] || '',
+          cost: parseFloat(row[7]) || 0,
+          dailyRate: parseFloat(row[8]) || 0,
+          annualRate: parseFloat(row[9]) || 0
+        };
+        
+        projects.push(project);
+        newProjectsCount++;
+      }
+      
+      // 保存到本地存储
+      saveToLocalStorage();
+      
+      // 更新表格
+      updateTable();
+      
+      // 更新图表
+      updateCharts();
+      
+      // 更新统计数据
+      updateStats();
+      
+      // 显示成功消息
+      showNotification(`成功追加 ${newProjectsCount} 个项目！`, 'success');
+    } catch (error) {
+      showNotification('导入Excel文件时出错：' + error.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  
+  // 重置文件输入
+  importCsvInput.value = '';
+}
+    
+    // 保存到本地存储
+    function saveToLocalStorage() {
+      localStorage.setItem('profitProjects', JSON.stringify(projects));
+    }
+    
+    // 从本地存储加载
+    function loadFromLocalStorage() {
+      const savedProjects = localStorage.getItem('profitProjects');
+      if (savedProjects) {
+        projects = JSON.parse(savedProjects);
+        updateTable();
+        updateCharts();
+        updateStats();
+      }
+    }
+    
+    // 更新统计数据
+    function updateStats() {
+      if (projects.length === 0) {
+        totalProfitSum.textContent = '0.00';
+        profitSumBar.style.width = '0%';
+        avgDailyProfitRate.textContent = '0.00%';
+        annualProfitRate.textContent = '0.00%';
+        dailyRateBar.style.width = '0%';
+        annualRateBar.style.width = '0%';
+        return;
+      }
+      
+      // 计算总利润
+      const totalProfit = projects.reduce((sum, project) => sum + project.totalProfit, 0);
+      
+      // 计算平均日利润率
+      const avgDailyRate = projects.reduce((sum, project) => sum + project.dailyRate, 0) / projects.length;
+      
+      // 计算平均年化利润率
+      const avgAnnualRate = projects.reduce((sum, project) => sum + project.annualRate, 0) / projects.length;
+      
+      // 更新显示
+      totalProfitSum.textContent = formatCurrency(totalProfit);
+      avgDailyProfitRate.textContent = formatPercentage(avgDailyRate);
+      annualProfitRate.textContent = formatPercentage(avgAnnualRate);
+      
+      // 更新进度条
+      const maxProfit = 10000;
+      profitSumBar.style.width = Math.min((totalProfit / maxProfit) * 100, 100) + '%';
+      dailyRateBar.style.width = Math.min(avgDailyRate * 5, 100) + '%';
+      annualRateBar.style.width = Math.min(avgAnnualRate / 5, 100) + '%';
+    }
+    
+    // 更新图表
+    function updateCharts() {
+      // 销毁现有图表
+      if (profitDistributionChart) {
+        profitDistributionChart.destroy();
+      }
+      
+      if (profitRateComparisonChart) {
+        profitRateComparisonChart.destroy();
+      }
+      
+      // 如果没有项目数据，不创建图表
+      if (projects.length === 0) {
+        return;
+      }
+      
+      // 准备利润分布图表数据
+      const profitLabels = projects.map(project => project.projectName);
+      const profitData = projects.map(project => project.totalProfit);
+      const profitColors = projects.map((_, index) => {
+        const hue = (index * 40) % 360; // 每隔40度取一个色相
+        return `hsla(${hue}, 70%, 60%, 0.8)`;
+      });
+      
+      // 创建利润分布图表
+      const profitCtx = document.getElementById('profitDistributionChart').getContext('2d');
+      profitDistributionChart = new Chart(profitCtx, {
+        type: 'doughnut',
+        data: {
+          labels: profitLabels,
+          datasets: [{
+            data: profitData,
+            backgroundColor: profitColors,
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                font: {
+                  family: 'Inter'
+                },
+                padding: 20
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.raw || 0;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${label}: ¥${value.toFixed(2)} (${percentage}%)`;
+                }
+              }
+            }
+          },
+          animation: {
+            animateScale: true,
+            animateRotate: true
+          }
+        }
+      });
+      
+      // 准备利润率对比图表数据
+      const rateLabels = projects.map(project => project.projectName);
+      const annualRateData = projects.map(project => project.annualRate);
+      const dailyRateData = projects.map(project => project.dailyRate);
+      
+      // 创建利润率对比图表
+      const rateCtx = document.getElementById('profitRateComparisonChart').getContext('2d');
+      profitRateComparisonChart = new Chart(rateCtx, {
+        type: 'bar',
+        data: {
+          labels: rateLabels,
+          datasets: [
+            {
+              label: '年化利润率 (%)',
+              data: annualRateData,
+              backgroundColor: 'rgba(22, 93, 255, 0.7)',
+              borderColor: 'rgba(22, 93, 255, 1)',
+              borderWidth: 1
+            },
+            // {
+            //   label: '日利润率 (%)',
+            //   data: dailyRateData,
+            //   backgroundColor: 'rgba(54, 207, 201, 0.7)',
+            //   borderColor: 'rgba(54, 207, 201, 1)',
+            //   borderWidth: 1
+            // }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return value + '%';
+                }
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                font: {
+                  family: 'Inter'
+                }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  if (context.parsed.y !== null) {
+                    label += context.parsed.y.toFixed(2) + '%';
+                  }
+                  return label;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    // 关闭模态框
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    // 显示通知
+    function showNotification(message, type = 'info') {
+      // 创建通知元素
+      const notification = document.createElement('div');
+      
+      // 设置样式和内容
+      let bgColor, icon;
+      switch (type) {
+        case 'success':
+          bgColor = 'bg-success text-white';
+          icon = 'fa-check-circle';
+          break;
+        case 'error':
+          bgColor = 'bg-danger text-white';
+          icon = 'fa-exclamation-circle';
+          break;
+        case 'warning':
+          bgColor = 'bg-warning text-white';
+          icon = 'fa-exclamation-triangle';
+          break;
+        default:
+          bgColor = 'bg-primary text-white';
+          icon = 'fa-info-circle';
+      }
+      
+      notification.className = `fixed top-4 right-4 ${bgColor} px-6 py-3 rounded-lg shadow-lg z-50 flex items-center transform transition-all duration-300 translate-x-full opacity-0`;
+      notification.innerHTML = `
+        <i class="fa ${icon} mr-2"></i>
         <span>${message}</span>
       `;
       
       // 添加到页面
-      document.body.appendChild(toast);
+      document.body.appendChild(notification);
       
-      // 显示动画
+      // 显示通知
       setTimeout(() => {
-        toast.classList.remove('opacity-0', 'translate-y-4');
-      }, 10);
+        notification.classList.remove('translate-x-full', 'opacity-0');
+      }, 100);
       
-      // 3秒后隐藏
+      // 自动关闭
       setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-4');
+        notification.classList.add('translate-x-full', 'opacity-0');
         setTimeout(() => {
-          document.body.removeChild(toast);
+          document.body.removeChild(notification);
         }, 300);
       }, 3000);
     }
     
-    // 从本地存储加载数据
-    function loadData() {
-      const savedProjects = localStorage.getItem('profitProjects');
-      if (savedProjects) {
-        projects = JSON.parse(savedProjects);
-        updateProjectsTable();
-      }
-    }
-    
-    // 事件监听
-    document.addEventListener('DOMContentLoaded', () => {
-      // 加载本地存储数据
-      loadData();
-      
-      // 计算总利润
-      copiesInput.addEventListener('input', calculateTotalProfit);
-      profitPerCopyInput.addEventListener('input', calculateTotalProfit);
-      
-      // 计算到期日期
-      daysInput.addEventListener('input', calculateDueDate);
-      
-      // 计算利润率
-      calculateBtn.addEventListener('click', () => {
-        const days = parseInt(daysInput.value) || 0;
-        const totalProfit = parseFloat(totalProfitInput.value) || 0;
-        const cost = parseFloat(costInput.value) || 0;
-        
-        if (days <= 0 || totalProfit <= 0 || cost <= 0) {
-          alert('请填写完整的天数、总利润和成本！');
-          return;
-        }
-        
-        const annualRate = calculateAnnualProfitRate(days, totalProfit, cost);
-        
-        // 显示提示
-        showToast(`年化利润率: ${formatPercentage(annualRate)}`);
-      });
-      
-      // 添加项目
-      addBtn.addEventListener('click', addProject);
-      
-      // 导出数据
-      exportBtn.addEventListener('click', exportData);
-      
-      // 清空数据
-      clearBtn.addEventListener('click', clearAllData);
-      
-      // 关闭模态框
-      closeModalBtn.addEventListener('click', () => {
-        projectModal.classList.add('hidden');
-      });
-      
-      // 点击模态框外部关闭
-      projectModal.addEventListener('click', (e) => {
-        if (e.target === projectModal) {
-          projectModal.classList.add('hidden');
-        }
-      });
-      
-      // 为表格添加动画效果
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('animate-fadeIn');
-            observer.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.1 });
-      
-      if (projectsTable) {
-        observer.observe(projectsTable);
+    // 导航栏滚动效果
+    window.addEventListener('scroll', function() {
+      const nav = document.querySelector('nav');
+      if (window.scrollY > 10) {
+        nav.classList.add('shadow-md');
+        nav.classList.remove('shadow-sm');
+      } else {
+        nav.classList.remove('shadow-md');
+        nav.classList.add('shadow-sm');
       }
     });
-    
-    // 使函数全局可用
-    window.viewProject = viewProject;
-    window.editProject = editProject;
-    window.deleteProject = deleteProject;
   </script>
 </body>
-</html>
+</html>    
